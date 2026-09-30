@@ -28,8 +28,15 @@ def grid_step(pos: tuple[int, int], action: int, G: int) -> tuple[tuple[int, int
 
     return pos, False
 
-# Step 2 - legal_actions (not yet solved)
-# TODO: implement
+# Step 2 - legal_actions
+def legal_actions(pos: tuple, G: int) -> list:
+    # TODO: Return the sorted list of legal action ids from pos.
+    act = []
+    for action in [0, 1, 2, 3]:
+        _ , legal = grid_step(pos, action, G)
+        if legal:
+            act.append(action)
+    return act
 
 # Step 3 - random_walk_to_goal (not yet solved)
 # TODO: implement
