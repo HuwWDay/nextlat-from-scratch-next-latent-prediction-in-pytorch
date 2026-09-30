@@ -56,8 +56,57 @@ def random_walk_to_goal(start: tuple, goal: tuple, G: int, max_len: int, rng) ->
         count += 1
     return steps
 
-# Step 4 - encode_sequence (not yet solved)
-# TODO: implement
+# Step 4 - encode_sequence
+import torch
+
+
+def encode_sequence(
+    start: tuple[int, int],
+    goal: tuple[int, int],
+    moves: list[int],
+    G: int,
+    T: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Turn a walk into a fixed-length token tensor and validity mask.
+
+    Vocabulary:
+      - Actions: 0..3
+      - Cell tokens: 4 + row * G + col
+      - EOS / Pad: 4 + G * G
+
+    Sequence layout:
+      [start_cell, goal_cell, move_1, ..., move_k, EOS] padded with EOS up to length T.
+      If moves exceed the budget, extra moves are dropped so that EOS fits.
+    """
+    eos_token = 4 + G * G
+
+    # Encode cell positions
+    start_cell = 4 + start[0] * G + start[1]
+    goal_cell = 4 + goal[0] * G + goal[1]
+
+    # Prefix always contains start and goal cells (assuming T >= 2)
+    prefix = [start_cell, goal_cell]
+
+    # Reserve 1 slot for EOS; any remaining slots in T - 2 go to moves
+    max_moves = max(0, T - len(prefix) - 1)
+    truncated_moves = moves[:max_moves]
+
+    # Assemble real sequence up to the first EOS
+    real_tokens = prefix + truncated_moves + [eos_token]
+    # Truncate in edge cases where T < len(real_tokens) (e.g. T < 3)
+    real_tokens = real_tokens[:T]
+
+    real_len = len(real_tokens)
+
+    # Initialize padded tensors of length T
+    tokens = torch.full((T,), eos_token, dtype=torch.long)
+    mask = torch.zeros((T,), dtype=torch.bool)
+
+    # Fill valid token values and mark them True in the mask
+    tokens[:real_len] = torch.tensor(real_tokens, dtype=torch.long)
+    mask[:real_len] = True
+
+    return tokens, mask
 
 # Step 5 - make_dataset (not yet solved)
 # TODO: implement
