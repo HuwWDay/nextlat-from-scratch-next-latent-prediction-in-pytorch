@@ -108,8 +108,72 @@ def encode_sequence(
 
     return tokens, mask
 
-# Step 5 - make_dataset (not yet solved)
-# TODO: implement
+# Step 5 - make_dataset
+import numpy as np
+import torch
+
+
+def make_dataset(n: int, G: int, T: int, seed: int = 0) -> dict:
+    """Generate n encoded goal-directed walks and track true cell states after each token.
+
+    Args:
+        n: Number of samples to generate.
+        G: Grid dimension (G x G).
+        T: Maximum sequence length.
+        seed: Random seed.
+
+    Returns:
+        A dictionary containing:
+          - 'tokens': (n, T) torch.long tensor of encoded sequences.
+          - 'mask':   (n, T) torch.bool tensor indicating non-pad tokens.
+          - 'states': (n, T) torch.long tensor of cell indices (row * G + col)
+                      after each token is consumed.
+          - 'G':      int, the grid size.
+    """
+    rng = np.random.default_rng(seed)
+
+    all_tokens = torch.empty((n, T), dtype=torch.long)
+    all_masks = torch.empty((n, T), dtype=torch.bool)
+    all_states = torch.empty((n, T), dtype=torch.long)
+
+    max_len = T - 3
+
+    for i in range(n):
+        # Draw start and goal positions uniformly at random
+        start = tuple(rng.integers(0, G, size=2).tolist())
+        goal = tuple(rng.integers(0, G, size=2).tolist())
+
+        # Generate walk moves
+        moves = random_walk_to_goal(
+            start=start, goal=goal, G=G, max_len=max_len, rng=rng
+        )
+
+        # Encode tokens and mask
+        tokens, mask = encode_sequence(start, goal, moves, G, T)
+        all_tokens[i] = tokens
+        all_masks[i] = mask
+
+        # Track the true cell state after consuming each token
+        states = torch.empty((T,), dtype=torch.long)
+        curr_pos = start
+
+        for t in range(T):
+            tok = tokens[t].item()
+            if tok in (0, 1, 2, 3):
+                # Valid move actions update position
+                curr_pos, _ = grid_step(curr_pos, tok, G)
+            # Token 0 is start_cell, token 1 is goal_cell, and EOS/pad tokens
+            # leave the position unchanged.
+            states[t] = curr_pos[0] * G + curr_pos[1]
+
+        all_states[i] = states
+
+    return {
+        "tokens": all_tokens,
+        "mask": all_masks,
+        "states": all_states,
+        "G": G,
+    }
 
 # Step 6 - get_batch (not yet solved)
 # TODO: implement

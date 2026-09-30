@@ -14,7 +14,7 @@ python scaffold.py
 - [x] **2.** legal_actions
 - [x] **3.** random_walk_to_goal
 - [x] **4.** encode_sequence
-- [ ] **5.** make_dataset
+- [x] **5.** make_dataset
 - [ ] **6.** get_batch
 - [ ] **7.** causal_mask
 - [ ] **8.** init_gpt_params
