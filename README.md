@@ -1,0 +1,2 @@
+# nextlat-from-scratch-next-latent-prediction-in-pytorch
+Build Next-Latent Prediction (NextLat, arXiv:2511.05963) end to end in functional PyTorch: a grid world whose true belief state is (position, goal), a tiny causal GPT, and a residual-delta latent dynamics model trained with a stop-gradient loss and a frozen-head KL term. Then measure the paper's world-model metrics and self-speculative decoding.
