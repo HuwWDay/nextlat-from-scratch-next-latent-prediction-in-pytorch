@@ -38,8 +38,23 @@ def legal_actions(pos: tuple, G: int) -> list:
             act.append(action)
     return act
 
-# Step 3 - random_walk_to_goal (not yet solved)
-# TODO: implement
+# Step 3 - random_walk_to_goal
+def random_walk_to_goal(start: tuple, goal: tuple, G: int, max_len: int, rng) -> list:
+    # TODO: Random legal moves from start until goal is reached or max_len moves.
+    count = 0
+    if start == goal:
+        return []
+    steps = []
+    pos = start 
+    while count < max_len:
+        actions = legal_actions(pos, G)
+        a = int(rng.choice(actions))
+        steps.append(a)
+        pos, _ = grid_step(pos, a, G)
+        if pos == goal:
+            break
+        count += 1
+    return steps
 
 # Step 4 - encode_sequence (not yet solved)
 # TODO: implement

@@ -12,7 +12,7 @@ python scaffold.py
 
 - [x] **1.** grid_step
 - [x] **2.** legal_actions
-- [ ] **3.** random_walk_to_goal
+- [x] **3.** random_walk_to_goal
 - [ ] **4.** encode_sequence
 - [ ] **5.** make_dataset
 - [ ] **6.** get_batch
