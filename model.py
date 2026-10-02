@@ -516,8 +516,39 @@ def latent_transition(
     # 4. Residual update
     return h + delta
 
-# Step 16 - rollout_latents (not yet solved)
-# TODO: implement
+# Step 16 - rollout_latents
+import torch
+
+
+def rollout_latents(
+    h: torch.Tensor,
+    x: torch.Tensor,
+    params: dict[str, torch.Tensor],
+    dyn: dict[str, torch.Tensor],
+    d_steps: int,
+) -> list[torch.Tensor]:
+    """Perform recursive d_steps rollout using the dynamics model.
+
+    At step i (0 <= i < d_steps):
+      - Step 0 predicts h_{t+1} from h_t and x_{t+1}: slice x[:, 1 : T - d_steps + 1]
+      - Step i predicts h_{t+1+i} from h_hat and x_{t+1+i}: slice x[:, 1 + i : T - d_steps + 1 + i]
+    """
+    B, T, d_model = h.shape
+
+    # Base hidden states h_t for t in [0, T - d_steps)
+    h_hat = h[:, : T - d_steps]
+    out = []
+
+    for i in range(d_steps):
+        # Action/token that transitions state t+i to t+1+i
+        token_slice = x[:, 1 + i : T - d_steps + 1 + i]
+        emb = params["wte"][token_slice]
+
+        # Transition forward
+        h_hat = latent_transition(h_hat, emb, dyn)
+        out.append(h_hat)
+
+    return out
 
 # Step 17 - next_hidden_loss (not yet solved)
 # TODO: implement
