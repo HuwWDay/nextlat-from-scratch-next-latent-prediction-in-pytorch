@@ -22,7 +22,7 @@ python scaffold.py
 - [x] **10.** mlp_block
 - [x] **11.** gpt_hidden_states
 - [x] **12.** output_head
-- [ ] **13.** next_token_loss
+- [x] **13.** next_token_loss
 - [ ] **14.** init_dynamics_params
 - [ ] **15.** latent_transition
 - [ ] **16.** rollout_latents

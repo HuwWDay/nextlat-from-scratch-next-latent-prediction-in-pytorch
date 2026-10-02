@@ -421,8 +421,38 @@ def output_head(h, params: dict):
     # TODO: Linear map from hidden states to logits over the vocabulary.
     return h @ params["head_w"] + params["head_b"]
 
-# Step 13 - next_token_loss (not yet solved)
-# TODO: implement
+# Step 13 - next_token_loss
+import torch
+import torch.nn.functional as F
+
+
+def next_token_loss(
+    logits: torch.Tensor, targets: torch.Tensor, mask: torch.Tensor
+) -> torch.Tensor:
+    """Masked mean cross-entropy loss from logits; returns 0.0 tensor if mask is empty.
+
+    Args:
+        logits: (B, T, V) unnormalized prediction scores.
+        targets: (B, T) target token indices.
+        mask: (B, T) boolean or numeric mask (True/1 for valid tokens).
+
+    Returns:
+        Scalar tensor with the mean cross-entropy loss over masked tokens.
+    """
+    total_valid = mask.sum()
+    if total_valid == 0:
+        return torch.tensor(0.0, device=logits.device, dtype=logits.dtype)
+
+    V = logits.shape[-1]
+    # Compute per-token loss without reduction: shape (B * T,)
+    loss_flat = F.cross_entropy(
+        logits.reshape(-1, V), targets.reshape(-1), reduction="none"
+    )
+
+    # Flatten mask to align with loss_flat
+    mask_flat = mask.reshape(-1)
+
+    return (loss_flat * mask_flat).sum() / total_valid
 
 # Step 14 - init_dynamics_params (not yet solved)
 # TODO: implement
