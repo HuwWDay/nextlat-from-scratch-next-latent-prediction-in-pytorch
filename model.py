@@ -341,8 +341,41 @@ def attention_block(
 
     return x + out
 
-# Step 10 - mlp_block (not yet solved)
-# TODO: implement
+# Step 10 - mlp_block
+import torch
+import torch.nn.functional as F
+
+
+def mlp_block(x: torch.Tensor, params: dict[str, torch.Tensor], layer: int) -> torch.Tensor:
+    """Apply one pre-LayerNorm feed-forward block with a residual connection.
+
+    Args:
+        x: Input tensor of shape (B, T, d).
+        params: Dictionary containing layer parameters.
+        layer: Layer index.
+
+    Returns:
+        Tensor of shape (B, T, d) after MLP transformation and residual connection.
+    """
+    d = x.shape[-1]
+
+    # Pre-LayerNorm
+    ln2_w = params[f"ln2_w{layer}"]
+    ln2_b = params[f"ln2_b{layer}"]
+    z = F.layer_norm(x, (d,), weight=ln2_w, bias=ln2_b, eps=1e-5)
+
+    # First linear projection + GELU (tanh approximation)
+    fc_w = params[f"fc_w{layer}"]
+    fc_b = params[f"fc_b{layer}"]
+    h = F.gelu(z @ fc_w + fc_b, approximate="tanh")
+
+    # Second linear projection
+    fc2_w = params[f"fc2_w{layer}"]
+    fc2_b = params[f"fc2_b{layer}"]
+    out = h @ fc2_w + fc2_b
+
+    # Residual connection
+    return x + out
 
 # Step 11 - gpt_hidden_states (not yet solved)
 # TODO: implement

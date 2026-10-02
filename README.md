@@ -19,7 +19,7 @@ python scaffold.py
 - [x] **7.** causal_mask
 - [x] **8.** init_gpt_params
 - [x] **9.** attention_block
-- [ ] **10.** mlp_block
+- [x] **10.** mlp_block
 - [ ] **11.** gpt_hidden_states
 - [ ] **12.** output_head
 - [ ] **13.** next_token_loss
