@@ -216,8 +216,76 @@ def causal_mask(T: int):
     # TODO: Return a (T, T) bool tensor, True where key index <= query index.
     return torch.tril(torch.ones(T, T, dtype=torch.bool))
 
-# Step 8 - init_gpt_params (not yet solved)
-# TODO: implement
+# Step 8 - init_gpt_params
+import torch
+
+
+def init_gpt_params(
+    vocab_size: int,
+    d_model: int,
+    n_layers: int,
+    max_len: int,
+    seed: int = 0,
+) -> dict[str, torch.Tensor]:
+    """Initialize parameter dictionary for a small pre-LN GPT.
+
+    Order:
+      1. 'wte' (vocab_size, d_model), 'wpe' (max_len, d_model)
+      2. For each layer l in 0..n_layers-1:
+         - ln1_w{l}, ln1_b{l}
+         - qkv_w{l} (d_model, 3*d_model), qkv_b{l}
+         - proj_w{l} (d_model, d_model), proj_b{l}
+         - ln2_w{l}, ln2_b{l}
+         - fc_w{l} (d_model, 4*d_model), fc_b{l}
+         - fc2_w{l} (4*d_model, d_model), fc2_b{l}
+      3. 'lnf_w', 'lnf_b', 'head_w' (d_model, vocab_size), 'head_b'
+    """
+    torch.manual_seed(seed)
+    params = {}
+
+    def _rand_mat(*shape: int) -> torch.Tensor:
+        return (torch.randn(*shape, dtype=torch.float32) * 0.02).requires_grad_(
+            True
+        )
+
+    def _zeros(*shape: int) -> torch.Tensor:
+        return torch.zeros(*shape, dtype=torch.float32, requires_grad=True)
+
+    def _ones(*shape: int) -> torch.Tensor:
+        return torch.ones(*shape, dtype=torch.float32, requires_grad=True)
+
+    # 1. Embeddings
+    params["wte"] = _rand_mat(vocab_size, d_model)
+    params["wpe"] = _rand_mat(max_len, d_model)
+
+    # 2. Transformer layers
+    for l in range(n_layers):
+        params[f"ln1_w{l}"] = _ones(d_model)
+        params[f"ln1_b{l}"] = _zeros(d_model)
+
+        params[f"qkv_w{l}"] = _rand_mat(d_model, 3 * d_model)
+        params[f"qkv_b{l}"] = _zeros(3 * d_model)
+
+        params[f"proj_w{l}"] = _rand_mat(d_model, d_model)
+        params[f"proj_b{l}"] = _zeros(d_model)
+
+        params[f"ln2_w{l}"] = _ones(d_model)
+        params[f"ln2_b{l}"] = _zeros(d_model)
+
+        params[f"fc_w{l}"] = _rand_mat(d_model, 4 * d_model)
+        params[f"fc_b{l}"] = _zeros(4 * d_model)
+
+        params[f"fc2_w{l}"] = _rand_mat(4 * d_model, d_model)
+        params[f"fc2_b{l}"] = _zeros(d_model)
+
+    # 3. Final LayerNorm and output head
+    params["lnf_w"] = _ones(d_model)
+    params["lnf_b"] = _zeros(d_model)
+
+    params["head_w"] = _rand_mat(d_model, vocab_size)
+    params["head_b"] = _zeros(vocab_size)
+
+    return params
 
 # Step 9 - attention_block (not yet solved)
 # TODO: implement
