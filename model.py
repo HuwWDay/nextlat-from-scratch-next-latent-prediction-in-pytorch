@@ -377,8 +377,44 @@ def mlp_block(x: torch.Tensor, params: dict[str, torch.Tensor], layer: int) -> t
     # Residual connection
     return x + out
 
-# Step 11 - gpt_hidden_states (not yet solved)
-# TODO: implement
+# Step 11 - gpt_hidden_states
+import torch
+import torch.nn.functional as F
+
+
+def gpt_hidden_states(
+    tokens: torch.Tensor, params: dict[str, torch.Tensor], n_heads: int
+) -> torch.Tensor:
+    """Run the transformer backbone and return final hidden states before logits.
+
+    Args:
+        tokens: Long tensor of token IDs with shape (B, T).
+        params: Parameter dictionary initialized by init_gpt_params.
+        n_heads: Number of attention heads.
+
+    Returns:
+        Tensor of shape (B, T, d) containing final layer-normed hidden states.
+    """
+    B, T = tokens.shape
+
+    # Infer the number of transformer layers
+    n_layers = sum(1 for k in params if k.startswith("ln1_w"))
+
+    # Token embeddings + learned positional embeddings
+    x = params["wte"][tokens] + params["wpe"][:T]
+
+    # Pre-LN Transformer blocks: Attention followed by MLP
+    for layer in range(n_layers):
+        x = attention_block(x, params, layer=layer, n_heads=n_heads)
+        x = mlp_block(x, params, layer=layer)
+
+    # Final LayerNorm
+    d = x.shape[-1]
+    lnf_w = params["lnf_w"]
+    lnf_b = params["lnf_b"]
+    h = F.layer_norm(x, (d,), weight=lnf_w, bias=lnf_b, eps=1e-5)
+
+    return h
 
 # Step 12 - output_head (not yet solved)
 # TODO: implement
