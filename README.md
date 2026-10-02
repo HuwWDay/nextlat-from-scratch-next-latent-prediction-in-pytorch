@@ -16,7 +16,7 @@ python scaffold.py
 - [x] **4.** encode_sequence
 - [x] **5.** make_dataset
 - [x] **6.** get_batch
-- [ ] **7.** causal_mask
+- [x] **7.** causal_mask
 - [ ] **8.** init_gpt_params
 - [ ] **9.** attention_block
 - [ ] **10.** mlp_block
