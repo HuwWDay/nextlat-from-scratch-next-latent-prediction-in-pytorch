@@ -550,8 +550,61 @@ def rollout_latents(
 
     return out
 
-# Step 17 - next_hidden_loss (not yet solved)
-# TODO: implement
+# Step 17 - next_hidden_loss
+import torch
+import torch.nn.functional as F
+
+
+def next_hidden_loss(
+    h: torch.Tensor,
+    h_hats: list[torch.Tensor],
+    mask: torch.Tensor,
+    beta: float = 1.0,
+) -> torch.Tensor:
+    """Compute the stop-gradient Smooth L1 loss between rolled-out latents and true hidden states.
+
+    Args:
+        h: (B, T, d) ground-truth hidden states from the backbone.
+        h_hats: List of rolled-out latents from rollout_latents, length d_steps.
+        mask: (B, T) bool tensor indicating valid positions.
+        beta: Threshold for Smooth L1 loss.
+
+    Returns:
+        Scalar 0-dim tensor containing the average loss across all steps.
+    """
+    d_steps = len(h_hats)
+    if d_steps == 0:
+        return torch.tensor(0.0, device=h.device, dtype=h.dtype)
+
+    B, T, d = h.shape
+    step_losses = []
+
+    for idx, h_hat in enumerate(h_hats):
+        # 1-based step index i: 1, 2, ..., d_steps
+        i = idx + 1
+
+        # Target hidden state slice with stop-gradient
+        target = h[:, i : T - d_steps + i].detach()
+        # Corresponding mask slice
+        m = mask[:, i : T - d_steps + i]
+
+        # Elementwise smooth L1 loss: (B, T - d_steps, d)
+        loss = F.smooth_l1_loss(h_hat, target, beta=beta, reduction="none")
+
+        # Average over the feature dimension d: (B, T - d_steps)
+        loss = loss.mean(dim=-1)
+
+        # Average over valid (masked) positions
+        valid_count = m.sum()
+        if valid_count > 0:
+            step_loss = (loss * m).sum() / valid_count
+        else:
+            step_loss = torch.tensor(0.0, device=h.device, dtype=h.dtype)
+
+        step_losses.append(step_loss)
+
+    # Average across all rollout steps
+    return torch.stack(step_losses).mean()
 
 # Step 18 - kl_alignment_loss (not yet solved)
 # TODO: implement
