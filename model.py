@@ -485,8 +485,36 @@ def init_dynamics_params(
         "b3": _zeros(d_model),
     }
 
-# Step 15 - latent_transition (not yet solved)
-# TODO: implement
+# Step 15 - latent_transition
+import torch
+import torch.nn.functional as F
+
+
+def latent_transition(
+    h: torch.Tensor, x_emb: torch.Tensor, dyn: dict[str, torch.Tensor]
+) -> torch.Tensor:
+    """Predict the next latent belief state using a residual 3-layer MLP dynamics model.
+
+    Computes:
+      z = LayerNorm(concat([h, x_emb], dim=-1))
+      a1 = GELU(z @ W1 + b1)
+      a2 = GELU(a1 @ W2 + b2)
+      delta = a2 @ W3 + b3
+      return h + delta
+    """
+    # 1. Concatenate current latent state and action/token embedding
+    z = torch.cat([h, x_emb], dim=-1)
+
+    # 2. Input LayerNorm
+    z = F.layer_norm(z, (z.shape[-1],), eps=1e-5)
+
+    # 3. 3-layer MLP with GELU (tanh approximation)
+    a1 = F.gelu(z @ dyn["W1"] + dyn["b1"], approximate="tanh")
+    a2 = F.gelu(a1 @ dyn["W2"] + dyn["b2"], approximate="tanh")
+    delta = a2 @ dyn["W3"] + dyn["b3"]
+
+    # 4. Residual update
+    return h + delta
 
 # Step 16 - rollout_latents (not yet solved)
 # TODO: implement

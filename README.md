@@ -24,7 +24,7 @@ python scaffold.py
 - [x] **12.** output_head
 - [x] **13.** next_token_loss
 - [x] **14.** init_dynamics_params
-- [ ] **15.** latent_transition
+- [x] **15.** latent_transition
 - [ ] **16.** rollout_latents
 - [ ] **17.** next_hidden_loss
 - [ ] **18.** kl_alignment_loss
