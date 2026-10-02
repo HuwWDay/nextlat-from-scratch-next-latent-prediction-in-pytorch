@@ -287,8 +287,59 @@ def init_gpt_params(
 
     return params
 
-# Step 9 - attention_block (not yet solved)
-# TODO: implement
+# Step 9 - attention_block
+import math
+import torch
+import torch.nn.functional as F
+
+
+def attention_block(
+    x: torch.Tensor, params: dict[str, torch.Tensor], layer: int, n_heads: int
+) -> torch.Tensor:
+    """Apply one pre-LayerNorm causal multi-head self-attention block with residual connection."""
+    B, T, d = x.shape
+    head_dim = d // n_heads
+
+    # Pre-LayerNorm
+    ln1_w = params[f"ln1_w{layer}"]
+    ln1_b = params[f"ln1_b{layer}"]
+    z = F.layer_norm(x, (d,), weight=ln1_w, bias=ln1_b, eps=1e-5)
+
+    # Q, K, V projection
+    qkv_w = params[f"qkv_w{layer}"]
+    qkv_b = params[f"qkv_b{layer}"]
+    qkv = z @ qkv_w + qkv_b
+    q, k, v = qkv.split(d, dim=-1)
+
+    # Reshape to (B, n_heads, T, head_dim)
+    q = q.view(B, T, n_heads, head_dim).transpose(1, 2)
+    k = k.view(B, T, n_heads, head_dim).transpose(1, 2)
+    v = v.view(B, T, n_heads, head_dim).transpose(1, 2)
+
+    # Scaled dot-product scores: (B, n_heads, T, T)
+    scores = (q @ k.transpose(-2, -1)) / math.sqrt(head_dim)
+
+    # Apply causal mask: mask positions that are NOT allowed (~mask) with -inf
+    mask = causal_mask(T)
+    if mask.dtype == torch.bool:
+        scores = scores.masked_fill(~mask, float("-inf"))
+    else:
+        # If causal_mask returns 0.0 for keep and -inf for mask out
+        scores = scores + mask
+
+    # Softmax & weighted values
+    attn_weights = F.softmax(scores, dim=-1)
+    out = attn_weights @ v  # (B, n_heads, T, head_dim)
+
+    # Merge heads back: (B, T, d)
+    out = out.transpose(1, 2).contiguous().view(B, T, d)
+
+    # Output projection
+    proj_w = params[f"proj_w{layer}"]
+    proj_b = params[f"proj_b{layer}"]
+    out = out @ proj_w + proj_b
+
+    return x + out
 
 # Step 10 - mlp_block (not yet solved)
 # TODO: implement

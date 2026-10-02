@@ -18,7 +18,7 @@ python scaffold.py
 - [x] **6.** get_batch
 - [x] **7.** causal_mask
 - [x] **8.** init_gpt_params
-- [ ] **9.** attention_block
+- [x] **9.** attention_block
 - [ ] **10.** mlp_block
 - [ ] **11.** gpt_hidden_states
 - [ ] **12.** output_head
