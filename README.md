@@ -15,7 +15,7 @@ python scaffold.py
 - [x] **3.** random_walk_to_goal
 - [x] **4.** encode_sequence
 - [x] **5.** make_dataset
-- [ ] **6.** get_batch
+- [x] **6.** get_batch
 - [ ] **7.** causal_mask
 - [ ] **8.** init_gpt_params
 - [ ] **9.** attention_block

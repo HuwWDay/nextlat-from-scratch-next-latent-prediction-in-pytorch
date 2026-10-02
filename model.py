@@ -175,8 +175,41 @@ def make_dataset(n: int, G: int, T: int, seed: int = 0) -> dict:
         "G": G,
     }
 
-# Step 6 - get_batch (not yet solved)
-# TODO: implement
+# Step 6 - get_batch
+import torch
+
+
+def get_batch(dataset: dict, batch_size: int, step: int) -> dict:
+    """Slice a deterministic batch from the dataset cyclically and prepare causal LM targets.
+
+    Args:
+        dataset: Dict containing 'tokens', 'mask', 'states', and 'G'.
+        batch_size: Number of samples per batch.
+        step: Step index determining the cyclic batch slice.
+
+    Returns:
+        A dict with:
+          - 'x':      (B, T - 1) tokens without the last position.
+          - 'y':      (B, T - 1) tokens without the first position (targets).
+          - 'mask':   (B, T - 1) mask aligned to 'y' (without the first position).
+          - 'states': (B, T - 1) states aligned to 'x' (without the last position).
+    """
+    n = dataset["tokens"].size(0)
+
+    # Compute cyclic row indices for this batch step
+    indices = (step * batch_size + torch.arange(batch_size)) % n
+
+    # Slice rows
+    batch_tokens = dataset["tokens"][indices]
+    batch_mask = dataset["mask"][indices]
+    batch_states = dataset["states"][indices]
+
+    return {
+        "x": batch_tokens[:, :-1],
+        "y": batch_tokens[:, 1:],
+        "mask": batch_mask[:, 1:],
+        "states": batch_states[:, :-1],
+    }
 
 # Step 7 - causal_mask (not yet solved)
 # TODO: implement
