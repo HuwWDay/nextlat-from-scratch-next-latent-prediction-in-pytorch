@@ -454,8 +454,36 @@ def next_token_loss(
 
     return (loss_flat * mask_flat).sum() / total_valid
 
-# Step 14 - init_dynamics_params (not yet solved)
-# TODO: implement
+# Step 14 - init_dynamics_params
+import torch
+
+
+def init_dynamics_params(
+    d_model: int, hidden: int, seed: int = 0
+) -> dict[str, torch.Tensor]:
+    """Allocate parameters W1, b1, W2, b2, W3, b3 for a 3-layer MLP dynamics model.
+
+    Inputs are concatenated (h_t, a_t) of dimension 2 * d_model, mapped to d_model.
+    Weights are initialized with std 0.02 and biases with zeros, all with requires_grad=True.
+    """
+    torch.manual_seed(seed)
+
+    def _rand_mat(*shape: int) -> torch.Tensor:
+        return (torch.randn(*shape, dtype=torch.float32) * 0.02).requires_grad_(
+            True
+        )
+
+    def _zeros(*shape: int) -> torch.Tensor:
+        return torch.zeros(*shape, dtype=torch.float32, requires_grad=True)
+
+    return {
+        "W1": _rand_mat(2 * d_model, hidden),
+        "b1": _zeros(hidden),
+        "W2": _rand_mat(hidden, hidden),
+        "b2": _zeros(hidden),
+        "W3": _rand_mat(hidden, d_model),
+        "b3": _zeros(d_model),
+    }
 
 # Step 15 - latent_transition (not yet solved)
 # TODO: implement
