@@ -21,7 +21,7 @@ python scaffold.py
 - [x] **9.** attention_block
 - [x] **10.** mlp_block
 - [x] **11.** gpt_hidden_states
-- [ ] **12.** output_head
+- [x] **12.** output_head
 - [ ] **13.** next_token_loss
 - [ ] **14.** init_dynamics_params
 - [ ] **15.** latent_transition

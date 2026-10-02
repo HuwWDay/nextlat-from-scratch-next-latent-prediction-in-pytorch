@@ -416,8 +416,10 @@ def gpt_hidden_states(
 
     return h
 
-# Step 12 - output_head (not yet solved)
-# TODO: implement
+# Step 12 - output_head
+def output_head(h, params: dict):
+    # TODO: Linear map from hidden states to logits over the vocabulary.
+    return h @ params["head_w"] + params["head_b"]
 
 # Step 13 - next_token_loss (not yet solved)
 # TODO: implement
