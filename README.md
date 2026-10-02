@@ -27,7 +27,7 @@ python scaffold.py
 - [x] **15.** latent_transition
 - [x] **16.** rollout_latents
 - [x] **17.** next_hidden_loss
-- [ ] **18.** kl_alignment_loss
+- [x] **18.** kl_alignment_loss
 - [ ] **19.** nextlat_loss
 - [ ] **20.** train_step
 - [ ] **21.** train_model

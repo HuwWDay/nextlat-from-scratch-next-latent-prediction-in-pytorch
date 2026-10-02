@@ -606,8 +606,72 @@ def next_hidden_loss(
     # Average across all rollout steps
     return torch.stack(step_losses).mean()
 
-# Step 18 - kl_alignment_loss (not yet solved)
-# TODO: implement
+# Step 18 - kl_alignment_loss
+import torch
+import torch.nn.functional as F
+
+
+def kl_alignment_loss(
+    h: torch.Tensor,
+    h_hats: list[torch.Tensor],
+    mask: torch.Tensor,
+    params: dict[str, torch.Tensor],
+) -> torch.Tensor:
+    """Compute forward KL(true || predicted) in token space using a detached output head.
+
+    Args:
+        h: (B, T, d) true hidden states.
+        h_hats: List of d_steps rolled-out latent tensors from rollout_latents.
+        mask: (B, T) boolean or numeric mask of valid token positions.
+        params: Model parameter dictionary containing 'head_w' and 'head_b'.
+
+    Returns:
+        Scalar 0-dim tensor with the average KL loss across rollout steps.
+    """
+    d_steps = len(h_hats)
+    if d_steps == 0:
+        return torch.tensor(0.0, device=h.device, dtype=h.dtype)
+
+    T = h.shape[1]
+    head_w = params["head_w"].detach()
+    head_b = params["head_b"].detach()
+
+    def _apply_head(x: torch.Tensor) -> torch.Tensor:
+        # If an output_head helper exists in your scope, it can be called directly:
+        # return output_head(x, {"head_w": head_w, "head_b": head_b})
+        return x @ head_w + head_b
+
+    step_losses = []
+
+    for idx, h_hat in enumerate(h_hats):
+        # 1-based step index i: 1, 2, ..., d_steps
+        i = idx + 1
+
+        # Slice target hidden states and mask
+        h_true = h[:, i : T - d_steps + i].detach()
+        m = mask[:, i : T - d_steps + i]
+
+        # Logits under frozen output head
+        logits_true = _apply_head(h_true)
+        logits_pred = _apply_head(h_hat)
+
+        # KL(P_true || Q_pred) = sum(P_true * (log P_true - log Q_pred))
+        log_p_true = F.log_softmax(logits_true, dim=-1)
+        log_q_pred = F.log_softmax(logits_pred, dim=-1)
+
+        # kl_div with log_target=True computes exp(log_target) * (log_target - input)
+        kl = F.kl_div(log_q_pred, log_p_true, log_target=True, reduction="none").sum(dim=-1)
+
+        # Masked average over positions
+        valid_count = m.sum()
+        if valid_count > 0:
+            step_loss = (kl * m).sum() / valid_count
+        else:
+            step_loss = torch.tensor(0.0, device=h.device, dtype=h.dtype)
+
+        step_losses.append(step_loss)
+
+    return torch.stack(step_losses).mean()
 
 # Step 19 - nextlat_loss (not yet solved)
 # TODO: implement
