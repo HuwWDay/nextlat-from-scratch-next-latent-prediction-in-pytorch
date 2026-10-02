@@ -673,8 +673,73 @@ def kl_alignment_loss(
 
     return torch.stack(step_losses).mean()
 
-# Step 19 - nextlat_loss (not yet solved)
-# TODO: implement
+# Step 19 - nextlat_loss
+import torch
+
+
+def nextlat_loss(
+    batch: dict,
+    params: dict,
+    dyn: dict,
+    n_heads: int,
+    d_steps: int,
+    lam_h: float,
+    lam_kl: float,
+    beta: float = 1.0,
+) -> dict[str, torch.Tensor]:
+    """Compute the full NextLat training objective on a batch.
+
+    Total loss:
+        total = next_token + lam_h * next_h + lam_kl * kl
+
+    Args:
+        batch: Dict containing 'x', 'y', and 'mask'.
+        params: GPT parameters dict.
+        dyn: Dynamics model parameters dict.
+        n_heads: Number of attention heads.
+        d_steps: Rollout horizon for the latent dynamics model.
+        lam_h: Weight for the next-hidden Smooth L1 loss.
+        lam_kl: Weight for the token-space KL alignment loss.
+        beta: Smooth L1 threshold parameter.
+
+    Returns:
+        Dict of 0-dim scalar tensors: 'total', 'next_token', 'next_h', 'kl'.
+    """
+    x = batch["x"]
+    y = batch["y"]
+    mask = batch["mask"]
+
+    # 1. Run GPT backbone to obtain hidden states
+    h = gpt_hidden_states(x, params, n_heads)
+
+    # 2. Compute logits and next-token cross-entropy loss
+    logits = output_head(h, params)
+    loss_nt = next_token_loss(logits, y, mask)
+
+    # 3. Latent dynamics rollouts and auxiliary losses
+    if d_steps > 0:
+        # EOS token ID corresponds to the last index in the vocabulary
+        eos = params["head_b"].shape[0] - 1
+        mask_x = x != eos
+
+        # Single shared latent rollout
+        h_hats = rollout_latents(h, x, params, dyn, d_steps)
+
+        loss_h = next_hidden_loss(h, h_hats, mask_x, beta=beta)
+        loss_kl = kl_alignment_loss(h, h_hats, mask_x, params)
+    else:
+        loss_h = torch.tensor(0.0, device=h.device, dtype=h.dtype)
+        loss_kl = torch.tensor(0.0, device=h.device, dtype=h.dtype)
+
+    # 4. Total weighted objective
+    total_loss = loss_nt + lam_h * loss_h + lam_kl * loss_kl
+
+    return {
+        "total": total_loss,
+        "next_token": loss_nt,
+        "next_h": loss_h,
+        "kl": loss_kl,
+    }
 
 # Step 20 - train_step (not yet solved)
 # TODO: implement
