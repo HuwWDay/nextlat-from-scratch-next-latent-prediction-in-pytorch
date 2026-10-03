@@ -741,8 +741,15 @@ def nextlat_loss(
         "kl": loss_kl,
     }
 
-# Step 20 - train_step (not yet solved)
-# TODO: implement
+# Step 20 - train_step
+def train_step(batch: dict, params: dict, dyn: dict, opt, n_heads: int, d_steps: int,
+               lam_h: float, lam_kl: float, beta: float = 1.0) -> dict:
+    # TODO: zero_grad -> nextlat_loss -> backward on 'total' -> step; return the four losses as floats.
+    opt.zero_grad()
+    out = nextlat_loss(batch, params, dyn, n_heads, d_steps, lam_h, lam_kl, beta)
+    out["total"].backward()
+    opt.step()
+    return {k: v.item() for k, v in out.items()}
 
 # Step 21 - train_model (not yet solved)
 # TODO: implement
