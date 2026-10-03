@@ -823,8 +823,39 @@ def train_model(dataset: dict, cfg: dict, seed: int = 0) -> tuple[dict, dict, li
 
     return params, dyn, history
 
-# Step 22 - greedy_decode (not yet solved)
-# TODO: implement
+# Step 22 - greedy_decode
+import torch
+
+
+def greedy_decode(
+    params: dict, n_heads: int, prefix: list[int], n_tokens: int
+) -> list[int]:
+    """Repeatedly run the transformer on the accumulated sequence and append the argmax token.
+
+    Args:
+        params: Model parameter dictionary.
+        n_heads: Number of attention heads.
+        prefix: Initial list of token IDs.
+        n_tokens: Number of tokens to generate.
+
+    Returns:
+        List of generated tokens (length `n_tokens`).
+    """
+    seq = list(prefix)
+    generated = []
+
+    with torch.no_grad():
+        for _ in range(n_tokens):
+            x = torch.tensor([seq], dtype=torch.long)
+            h = gpt_hidden_states(x, params, n_heads)
+            # Obtain logits for the final sequence position: (1, vocab_size)
+            logits = output_head(h[:, -1:], params)
+            tok = int(torch.argmax(logits[0, -1]).item())
+
+            seq.append(tok)
+            generated.append(tok)
+
+    return generated
 
 # Step 23 - effective_rank (not yet solved)
 # TODO: implement
