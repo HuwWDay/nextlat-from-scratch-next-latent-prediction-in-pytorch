@@ -751,8 +751,77 @@ def train_step(batch: dict, params: dict, dyn: dict, opt, n_heads: int, d_steps:
     opt.step()
     return {k: v.item() for k, v in out.items()}
 
-# Step 21 - train_model (not yet solved)
-# TODO: implement
+# Step 21 - train_model
+import torch
+
+
+def train_model(dataset: dict, cfg: dict, seed: int = 0) -> tuple[dict, dict, list[dict]]:
+    """Initialize model & dynamics, optimize with Adam over cyclic batches, and record history.
+
+    Args:
+        dataset: Dict containing 'tokens', 'mask', 'states', and 'G'.
+        cfg: Configuration dictionary with hyperparameters:
+             - 'd_model', 'n_layers', 'n_heads'
+             - 'hidden' (for dynamics MLP)
+             - 'lr', 'steps', 'batch_size'
+             - 'd_steps', 'lam_h', 'lam_kl', and optionally 'beta'
+        seed: Random seed for parameter initialization.
+
+    Returns:
+        tuple of (params, dyn, history), where history is a list of loss dicts
+        (with float values) recorded at each step.
+    """
+    G = dataset["G"]
+    # Vocabulary: 4 actions (0..3) + G*G cells + 1 EOS = 4 + G*G + 1
+    vocab_size = 4 + G * G + 1
+    max_len = dataset["tokens"].shape[1]
+
+    # Initialize GPT and dynamics parameters
+    params = init_gpt_params(
+        vocab_size=vocab_size,
+        d_model=cfg["d_model"],
+        n_layers=cfg["n_layers"],
+        max_len=max_len,
+        seed=seed,
+    )
+    dyn = init_dynamics_params(
+        d_model=cfg["d_model"],
+        hidden=cfg["hidden"],
+        seed=seed,
+    )
+
+    # Combine all trainable parameters into a single Adam optimizer
+    all_params = list(params.values()) + list(dyn.values())
+    optimizer = torch.optim.Adam(all_params, lr=cfg["lr"])
+
+    history = []
+    beta = cfg.get("beta", 1.0)
+
+    for step in range(cfg["steps"]):
+        optimizer.zero_grad()
+
+        # Deterministic cyclic batch slice
+        batch = get_batch(dataset, batch_size=cfg["batch_size"], step=step)
+
+        # Compute full NextLat objective
+        losses = nextlat_loss(
+            batch=batch,
+            params=params,
+            dyn=dyn,
+            n_heads=cfg["n_heads"],
+            d_steps=cfg["d_steps"],
+            lam_h=cfg["lam_h"],
+            lam_kl=cfg["lam_kl"],
+            beta=beta,
+        )
+
+        losses["total"].backward()
+        optimizer.step()
+
+        # Record scalar metric history
+        history.append({k: v.detach().item() for k, v in losses.items()})
+
+    return params, dyn, history
 
 # Step 22 - greedy_decode (not yet solved)
 # TODO: implement

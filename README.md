@@ -30,7 +30,7 @@ python scaffold.py
 - [x] **18.** kl_alignment_loss
 - [x] **19.** nextlat_loss
 - [x] **20.** train_step
-- [ ] **21.** train_model
+- [x] **21.** train_model
 - [ ] **22.** greedy_decode
 - [ ] **23.** effective_rank
 - [ ] **24.** eval_hidden_states
