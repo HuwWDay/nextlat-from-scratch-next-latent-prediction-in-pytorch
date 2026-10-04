@@ -857,8 +857,16 @@ def greedy_decode(
 
     return generated
 
-# Step 23 - effective_rank (not yet solved)
-# TODO: implement
+# Step 23 - effective_rank
+def effective_rank(H, tol: float = 1e-12) -> float:
+    # TODO: exp of the Shannon entropy of the normalized singular values above tol.
+    s = torch.linalg.svdvals(H)
+    s = s[s>tol]
+    if len(s) == 0:
+        return 0.0
+    p = s / s.sum()
+    H = -(p*p.log()).sum()
+    return float(torch.exp(H))
 
 # Step 24 - eval_hidden_states (not yet solved)
 # TODO: implement
