@@ -868,8 +868,30 @@ def effective_rank(H, tol: float = 1e-12) -> float:
     H = -(p*p.log()).sum()
     return float(torch.exp(H))
 
-# Step 24 - eval_hidden_states (not yet solved)
-# TODO: implement
+# Step 24 - eval_hidden_states
+import torch
+
+
+def eval_hidden_states(
+    dataset: dict, params: dict, n_heads: int, n_rows: int
+) -> torch.Tensor:
+    """Collect transformer hidden states at every real input position of the first n_rows sequences.
+
+    Args:
+        dataset: Dict containing 'tokens' and 'mask'.
+        params: Model parameter dictionary.
+        n_heads: Number of attention heads.
+        n_rows: Number of sequences to evaluate.
+
+    Returns:
+        A detached (N, d) float tensor containing hidden states for valid positions.
+    """
+    x = dataset["tokens"][:n_rows, :-1]
+    mask_x = dataset["mask"][:n_rows, :-1]
+
+    with torch.no_grad():
+        h = gpt_hidden_states(x, params, n_heads)
+        return h[mask_x].detach()
 
 # Step 25 - valid_move_rate (not yet solved)
 # TODO: implement

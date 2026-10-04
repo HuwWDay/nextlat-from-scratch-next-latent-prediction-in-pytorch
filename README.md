@@ -33,7 +33,7 @@ python scaffold.py
 - [x] **21.** train_model
 - [x] **22.** greedy_decode
 - [x] **23.** effective_rank
-- [ ] **24.** eval_hidden_states
+- [x] **24.** eval_hidden_states
 - [ ] **25.** valid_move_rate
 - [ ] **26.** sequence_compression
 - [ ] **27.** detour_robustness
