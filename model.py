@@ -893,8 +893,66 @@ def eval_hidden_states(
         h = gpt_hidden_states(x, params, n_heads)
         return h[mask_x].detach()
 
-# Step 25 - valid_move_rate (not yet solved)
-# TODO: implement
+# Step 25 - valid_move_rate
+import torch
+
+
+def valid_move_rate(
+    dataset: dict, params: dict, n_heads: int, n_rows: int
+) -> float:
+    """Evaluate the fraction of top-1 predictions that are legal under the true world model.
+
+    Evaluates across the first `n_rows` sequences at positions t >= 1 where `y_mask` is True.
+    A prediction is legal if:
+      - The walker has reached the goal and predicts EOS (= 4 + G*G), OR
+      - The walker has not reached the goal and predicts a valid action in legal_actions(pos, G).
+
+    Returns:
+        Fraction of legal predictions as a float (0.0 if no positions scored).
+    """
+    G = dataset["G"]
+    eos_token = 4 + G * G
+
+    # Slice sequences and alignments for the first n_rows
+    x = dataset["tokens"][:n_rows, :-1]
+    y_mask = dataset["mask"][:n_rows, 1:]
+    true_states = dataset["states"][:n_rows, :-1]
+
+    # Goal cell index: tokens[:, 1] stores 4 + row * G + col
+    goal_cells = dataset["tokens"][:n_rows, 1] - 4
+
+    with torch.no_grad():
+        h = gpt_hidden_states(x, params, n_heads)
+        logits = output_head(h, params)
+        preds = torch.argmax(logits, dim=-1)
+
+    total_scored = 0
+    legal_count = 0
+
+    B, T_minus_1 = x.shape
+
+    for b in range(B):
+        goal = goal_cells[b].item()
+        for t in range(1, T_minus_1):
+            if not y_mask[b, t].item():
+                continue
+
+            pred = preds[b, t].item()
+            curr_state = true_states[b, t].item()
+            pos = (curr_state // G, curr_state % G)
+
+            total_scored += 1
+            if curr_state == goal:
+                if pred == eos_token:
+                    legal_count += 1
+            else:
+                if pred in legal_actions(pos, G):
+                    legal_count += 1
+
+    if total_scored == 0:
+        return 0.0
+
+    return float(legal_count / total_scored)
 
 # Step 26 - sequence_compression (not yet solved)
 # TODO: implement
