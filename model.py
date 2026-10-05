@@ -954,8 +954,65 @@ def valid_move_rate(
 
     return float(legal_count / total_scored)
 
-# Step 26 - sequence_compression (not yet solved)
-# TODO: implement
+# Step 26 - sequence_compression
+def sequence_compression(
+    dataset: dict,
+    params: dict,
+    n_heads: int,
+    n_tokens: int,
+    max_pairs: int,
+) -> float:
+    """Compute the sequence compression metric.
+
+    Evaluates the fraction of distinct prefix pairs that share the same true current
+    state and goal cell for which greedy autoregressive decoding yields identical
+    continuations.
+    """
+    tokens = dataset["tokens"]
+    mask = dataset["mask"]
+    states = dataset["states"]
+    n_rows, T = tokens.shape
+
+    # Collect prefixes mapped by key: (state_at_t, goal_cell_token)
+    # Using a dict to preserve the first-seen order of keys.
+    prefix_groups = {}
+
+    for i in range(n_rows):
+        goal_token = tokens[i, 1].item()
+        for t in range(2, T):
+            if not mask[i, t].item():
+                continue
+            if tokens[i, t].item() >= 4:
+                continue
+            if t + 1 + n_tokens > T:
+                continue
+
+            key = (states[i, t].item(), goal_token)
+            prefix = tokens[i, : t + 1].tolist()
+
+            if key not in prefix_groups:
+                prefix_groups[key] = [prefix]
+            else:
+                existing = prefix_groups[key]
+                if len(existing) < 2 and prefix != existing[0]:
+                    existing.append(prefix)
+
+    # Filter to keys that gathered at least two distinct prefixes
+    valid_pairs = [prefixes for prefixes in prefix_groups.values() if len(prefixes) == 2]
+
+    # Restrict to at most max_pairs in first-seen order
+    eval_pairs = valid_pairs[:max_pairs]
+    if not eval_pairs:
+        return 0.0
+
+    matching_pairs = 0
+    for p1, p2 in eval_pairs:
+        gen1 = greedy_decode(params, n_heads, p1, n_tokens)
+        gen2 = greedy_decode(params, n_heads, p2, n_tokens)
+        if gen1 == gen2:
+            matching_pairs += 1
+
+    return float(matching_pairs / len(eval_pairs))
 
 # Step 27 - detour_robustness (not yet solved)
 # TODO: implement

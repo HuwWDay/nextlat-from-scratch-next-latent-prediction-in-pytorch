@@ -35,7 +35,7 @@ python scaffold.py
 - [x] **23.** effective_rank
 - [x] **24.** eval_hidden_states
 - [x] **25.** valid_move_rate
-- [ ] **26.** sequence_compression
+- [x] **26.** sequence_compression
 - [ ] **27.** detour_robustness
 - [ ] **28.** world_model_report
 - [ ] **29.** draft_from_latent
