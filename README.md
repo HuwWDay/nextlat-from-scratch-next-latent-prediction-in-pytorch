@@ -41,7 +41,7 @@ python scaffold.py
 - [x] **29.** draft_from_latent
 - [x] **30.** verify_draft
 - [x] **31.** self_speculative_generate
-- [ ] **32.** speculative_stats
+- [x] **32.** speculative_stats
 
 ---
 

@@ -1322,6 +1322,31 @@ def self_speculative_generate(
         "accepted": accepted_history,
     }
 
-# Step 32 - speculative_stats (not yet solved)
-# TODO: implement
+# Step 32 - speculative_stats
+def speculative_stats(result: dict, n_tokens: int) -> dict:
+    """Summarize performance statistics for a self-speculative decoding run.
+
+    Args:
+        result: Dictionary returned by self_speculative_generate, containing:
+                - 'cycles': int, number of verification cycles.
+                - 'accepted': list of int, draft acceptance count per cycle.
+        n_tokens: Total number of tokens generated.
+
+    Returns:
+        A dict with:
+          - 'cycles': int, number of cycles executed.
+          - 'mean_accepted': float, mean drafts accepted per cycle (rounded to 4 decimals).
+          - 'speedup': float, n_tokens / cycles (rounded to 4 decimals).
+    """
+    cycles = result["cycles"]
+    accepted = result["accepted"]
+
+    mean_accepted = float(sum(accepted) / len(accepted)) if accepted else 0.0
+    speedup = float(n_tokens / cycles) if cycles > 0 else 0.0
+
+    return {
+        "cycles": cycles,
+        "mean_accepted": round(mean_accepted, 4),
+        "speedup": round(speedup, 4),
+    }
 
