@@ -40,7 +40,7 @@ python scaffold.py
 - [x] **28.** world_model_report
 - [x] **29.** draft_from_latent
 - [x] **30.** verify_draft
-- [ ] **31.** self_speculative_generate
+- [x] **31.** self_speculative_generate
 - [ ] **32.** speculative_stats
 
 ---

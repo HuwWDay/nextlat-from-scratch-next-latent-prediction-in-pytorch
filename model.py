@@ -1252,8 +1252,75 @@ def verify_draft(
 
     return n_accepted, correction
 
-# Step 31 - self_speculative_generate (not yet solved)
-# TODO: implement
+# Step 31 - self_speculative_generate
+import torch
+
+
+def self_speculative_generate(
+    params: dict,
+    dyn: dict,
+    n_heads: int,
+    prefix: list[int],
+    n_tokens: int,
+    max_draft: int,
+) -> dict:
+    """Generate n_tokens with variable-length self-speculative decoding.
+
+    Args:
+        params: GPT model parameter dictionary.
+        dyn: Dynamics model parameter dictionary.
+        n_heads: Number of attention heads.
+        prefix: Initial list of prompt/prefix tokens.
+        n_tokens: Number of tokens to generate.
+        max_draft: Maximum number of speculative tokens per draft cycle.
+
+    Returns:
+        dict with:
+          - 'tokens': list of generated token IDs (truncated to n_tokens).
+          - 'cycles': int, number of speculative verify cycles executed.
+          - 'accepted': list of int, number of accepted draft tokens per cycle.
+    """
+    seq = list(prefix)
+    max_len = params["wpe"].shape[0]
+
+    accepted_history = []
+    cycles = 0
+
+    while len(seq) - len(prefix) < n_tokens:
+        cycles += 1
+
+        with torch.no_grad():
+            x = torch.tensor([seq], dtype=torch.long)
+            h = gpt_hidden_states(x, params, n_heads)
+            h_last = h[0, -1]
+
+        # Ensure draft tokens fit within the positional embedding budget:
+        # verifying seq + [next_token] + drafts has length len(seq) + 1 + k <= max_len - 1
+        # (allowing space for the correction token within max_len)
+        k = max(0, min(max_draft, max_len - len(seq) - 2))
+
+        # Draft candidate tokens from the latent dynamics model
+        next_token, drafts = draft_from_latent(h_last, dyn, params, k)
+
+        # Single transformer pass verification
+        n_accepted, correction = verify_draft(
+            params, n_heads, seq, next_token, drafts
+        )
+
+        accepted_history.append(n_accepted)
+
+        # Extend sequence with verified base token, accepted drafts, and correction token
+        new_tokens = [next_token] + drafts[:n_accepted] + [correction]
+        seq.extend(new_tokens)
+
+    # Slice out generated tokens (excluding the initial prefix) and truncate to n_tokens
+    generated = seq[len(prefix) : len(prefix) + n_tokens]
+
+    return {
+        "tokens": generated,
+        "cycles": cycles,
+        "accepted": accepted_history,
+    }
 
 # Step 32 - speculative_stats (not yet solved)
 # TODO: implement
