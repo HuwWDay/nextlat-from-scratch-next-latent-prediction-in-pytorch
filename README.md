@@ -39,7 +39,7 @@ python scaffold.py
 - [x] **27.** detour_robustness
 - [x] **28.** world_model_report
 - [x] **29.** draft_from_latent
-- [ ] **30.** verify_draft
+- [x] **30.** verify_draft
 - [ ] **31.** self_speculative_generate
 - [ ] **32.** speculative_stats
 

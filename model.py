@@ -1192,8 +1192,65 @@ def draft_from_latent(
 
     return next_token, drafts
 
-# Step 30 - verify_draft (not yet solved)
-# TODO: implement
+# Step 30 - verify_draft
+import torch
+
+
+def verify_draft(
+    params: dict,
+    n_heads: int,
+    prefix: list[int],
+    next_token: int,
+    drafts: list[int],
+) -> tuple[int, int]:
+    """Verify speculative draft tokens in a single causal transformer pass.
+
+    Constructs seq = prefix + [next_token] + drafts of length L.
+    Position index layout:
+      - indices 0 .. len(prefix) - 1 : prefix tokens
+      - index len(prefix)            : next_token
+      - index len(prefix) + 1 + j    : drafts[j] for j in 0..len(drafts)-1
+
+    The prediction generated *at* position idx predicts the token at idx + 1:
+      - preds[len(prefix)] predicts token at len(prefix) + 1 (i.e., drafts[0])
+      - preds[len(prefix) + j] predicts token at len(prefix) + 1 + j (i.e., drafts[j])
+
+    Args:
+        params: Model parameter dictionary.
+        n_heads: Number of attention heads.
+        prefix: Initial context token list.
+        next_token: The verified next token emitted from prefix.
+        drafts: List of speculative draft tokens.
+
+    Returns:
+        tuple (n_accepted, correction):
+          - n_accepted: Number of contiguous accepted draft tokens from the beginning.
+          - correction: The transformer's true argmax prediction at the first divergence
+                        (or the follow-on prediction if all drafts are accepted).
+    """
+    seq = prefix + [next_token] + drafts
+    x = torch.tensor([seq], dtype=torch.long)
+
+    with torch.no_grad():
+        h = gpt_hidden_states(x, params, n_heads)
+        logits = output_head(h[0], params)
+        preds = torch.argmax(logits, dim=-1)
+
+    n_accepted = 0
+    prefix_len = len(prefix)
+
+    for j, draft_tok in enumerate(drafts):
+        # preds[prefix_len + j] is the prediction at the position right before drafts[j]
+        pred_tok = int(preds[prefix_len + j].item())
+        if pred_tok == draft_tok:
+            n_accepted += 1
+        else:
+            break
+
+    # Correction token is the model's true top-1 output immediately after the accepted prefix
+    correction = int(preds[prefix_len + n_accepted].item())
+
+    return n_accepted, correction
 
 # Step 31 - self_speculative_generate (not yet solved)
 # TODO: implement
