@@ -37,7 +37,7 @@ python scaffold.py
 - [x] **25.** valid_move_rate
 - [x] **26.** sequence_compression
 - [x] **27.** detour_robustness
-- [ ] **28.** world_model_report
+- [x] **28.** world_model_report
 - [ ] **29.** draft_from_latent
 - [ ] **30.** verify_draft
 - [ ] **31.** self_speculative_generate

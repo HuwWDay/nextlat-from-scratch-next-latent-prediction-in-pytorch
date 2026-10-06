@@ -1086,8 +1086,60 @@ def detour_robustness(
 
     return float(successes / n_trials)
 
-# Step 28 - world_model_report (not yet solved)
-# TODO: implement
+# Step 28 - world_model_report
+def world_model_report(
+    dataset: dict,
+    params: dict,
+    n_heads: int,
+    n_rows: int,
+    n_tokens: int,
+    max_pairs: int,
+    n_trials: int,
+    seed: int = 0,
+) -> dict[str, float]:
+    """Compute and report the four core world-model evaluation metrics.
+
+    Metrics:
+      - valid_move_rate: Fraction of top-1 predictions that are legal actions or EOS at goal.
+      - effective_rank: Effective rank of the evaluation hidden states matrix.
+      - sequence_compression: Fraction of matching greedy rollouts from equivalent (state, goal) states.
+      - detour_robustness: Goal-reaching success rate under random action perturbations.
+
+    Returns:
+        Dictionary mapping metric names to floats rounded to 4 decimal places.
+    """
+    G = dataset["G"]
+    T = dataset["tokens"].shape[1]
+
+    # 1. Valid move rate
+    vmr = valid_move_rate(dataset, params, n_heads=n_heads, n_rows=n_rows)
+
+    # 2. Effective rank of hidden states
+    h_states = eval_hidden_states(dataset, params, n_heads=n_heads, n_rows=n_rows)
+    erank = effective_rank(h_states)
+
+    # 3. Sequence compression
+    seq_comp = sequence_compression(
+        dataset, params, n_heads=n_heads, n_tokens=n_tokens, max_pairs=max_pairs
+    )
+
+    # 4. Detour robustness
+    detour = detour_robustness(
+        params,
+        n_heads=n_heads,
+        G=G,
+        max_steps=T - 3,
+        n_trials=n_trials,
+        detour_prob=0.75,
+        seed=seed,
+    )
+
+    return {
+        "valid_move_rate": round(float(vmr), 4),
+        "effective_rank": round(float(erank), 4),
+        "sequence_compression": round(float(seq_comp), 4),
+        "detour_robustness": round(float(detour), 4),
+    }
 
 # Step 29 - draft_from_latent (not yet solved)
 # TODO: implement
