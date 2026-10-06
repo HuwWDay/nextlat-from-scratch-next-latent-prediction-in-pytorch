@@ -1014,8 +1014,77 @@ def sequence_compression(
 
     return float(matching_pairs / len(eval_pairs))
 
-# Step 27 - detour_robustness (not yet solved)
-# TODO: implement
+# Step 27 - detour_robustness
+import numpy as np
+
+
+def detour_robustness(
+    params: dict,
+    n_heads: int,
+    G: int,
+    max_steps: int,
+    n_trials: int,
+    detour_prob: float = 0.75,
+    seed: int = 0,
+) -> float:
+    """Evaluate detour robustness: fraction of episodes reaching the goal despite random perturbations.
+
+    For each trial:
+      - Samples start and goal cells.
+      - At each step, if pos == goal, episode succeeds immediately.
+      - With probability detour_prob, samples a random legal action (detour).
+      - Otherwise, queries the model via greedy_decode for 1 token. If the model
+        predicts an illegal move, the episode fails immediately.
+      - Advances pos via grid_step and appends the action to seq.
+      - After max_steps, succeeds only if pos == goal.
+
+    Returns:
+        Fraction of successful episodes as a float (0.0 if n_trials == 0).
+    """
+    if n_trials <= 0:
+        return 0.0
+
+    rng = np.random.default_rng(seed)
+    successes = 0
+
+    for _ in range(n_trials):
+        start = tuple(rng.integers(0, G, size=2).tolist())
+        goal = tuple(rng.integers(0, G, size=2).tolist())
+
+        start_cell = 4 + start[0] * G + start[1]
+        goal_cell = 4 + goal[0] * G + goal[1]
+        seq = [start_cell, goal_cell]
+
+        pos = start
+        episode_success = False
+
+        for _ in range(max_steps):
+            if pos == goal:
+                episode_success = True
+                break
+
+            allowed_actions = legal_actions(pos, G)
+
+            if rng.random() < detour_prob:
+                action = int(rng.choice(allowed_actions))
+            else:
+                pred_token = greedy_decode(params, n_heads, seq, 1)[0]
+                if pred_token not in allowed_actions:
+                    # Model attempted an illegal move
+                    break
+                action = pred_token
+
+            pos, _ = grid_step(pos, action, G)
+            seq.append(action)
+        else:
+            # Check if final step reached the goal
+            if pos == goal:
+                episode_success = True
+
+        if episode_success:
+            successes += 1
+
+    return float(successes / n_trials)
 
 # Step 28 - world_model_report (not yet solved)
 # TODO: implement
